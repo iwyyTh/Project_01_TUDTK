@@ -1,0 +1,21 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+ENV/
+env/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/*
+
+# kết quả benchmark (nếu bạn không muốn lưu bản cũ)
+part3/benchmark_results.json
+*.png
+
+# OS files
+.DS_Store
+Thumbs.db
