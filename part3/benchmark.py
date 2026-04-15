@@ -32,7 +32,7 @@ if _part1_dir not in sys.path:
 if _part2_dir not in sys.path:
     sys.path.append(_part2_dir)
 
-from gaussian import gaussian_eliminate
+from part1.gaussian import gaussian_eliminate
 from solvers import gauss_seidel, solve_svd, solve_gauss, relative_error
 
 

@@ -32,10 +32,10 @@ if _part2_dir not in sys.path:
     sys.path.append(_part2_dir)
 
 # Import từ Phần 1
-from gaussian import gaussian_eliminate
+from part1.gaussian import gaussian_eliminate
 
 # Import từ Phần 2
-from decomposition import svd_decomposition
+from part2.decomposition import svd_decomposition
 
 
 # ================================================================
