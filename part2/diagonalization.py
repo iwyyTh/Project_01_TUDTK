@@ -1,10 +1,6 @@
 import math
 import numpy as np
 
-# ================================================================
-# ============ CÁC HÀM HỖ TRỢ (THUẦN PYTHON) ====================
-# ================================================================
-
 def _identity(n):
     """Tạo ma trận đơn vị Iₙ (n×n)."""
     return [[1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
@@ -43,27 +39,8 @@ def _print_matrix(M, name="M", decimals=4):
         print(f"    [{formatted}]")
 
 
-# ================================================================
-# ======== BƯỚC 1: TÌM HỆ SỐ ĐA THỨC ĐẶC TRƯNG ==================
-# ======== Thuật toán Faddeev-LeVerrier        ==================
-# ================================================================
+# Bước 1: Tìm hệ số đa thức đặc trưng
 def faddeev_leverrier(A):
-    """
-    Tìm hệ số đa thức đặc trưng bằng thuật toán Faddeev-LeVerrier.
-    
-    Thuật toán: Dựa trên quan hệ đệ quy giữa lũy thừa ma trận và
-    hệ số của đa thức đặc trưng det(A - λI) = 0.
-    Chỉ cần phép nhân ma trận + tính trace → hoàn toàn from scratch.
-    
-    Đa thức đặc trưng: P(λ) = λⁿ + cₙ₋₁λⁿ⁻¹ + ... + c₁λ + c₀ = 0
-    
-    Tham số:
-        A: list of lists — ma trận vuông n×n
-    Trả về:
-        list [c₀, c₁, ..., cₙ₋₁] — hệ số đa thức đặc trưng (trừ hệ số λⁿ = 1)
-    
-    Ví dụ: A = [[4,1],[2,3]] → P(λ) = λ² - 7λ + 10 → trả về [10, -7]
-    """
     n = len(A)
     M = [[0.0] * n for _ in range(n)] # M_0 = 0
     coeffs = []
@@ -88,21 +65,8 @@ def faddeev_leverrier(A):
     return coeffs[::-1]
 
 
-# ================================================================
-# ======== BƯỚC 2: GIẢI NGHIỆM ĐA THỨC (ĐẠI SỐ) ==================
-# ================================================================
+# Bước 2: Tìm nghiệm đa thức
 def solve_quadratic(c1, c0):
-    """
-    Giải phương trình bậc 2: λ² + c₁λ + c₀ = 0
-    
-    Sử dụng công thức nghiệm bậc 2 (delta = b² - 4ac).
-    Hỗ trợ cả nghiệm thực và nghiệm phức.
-    
-    Tham số:
-        c1, c0: float — hệ số của đa thức
-    Trả về:
-        list — 2 nghiệm (float nếu thực, complex nếu phức)
-    """
     delta = c1**2 - 4*c0
     if delta < 0:
         return [(-c1 + complex(0, math.sqrt(-delta))) / 2.0, (-c1 - complex(0, math.sqrt(-delta))) / 2.0]
@@ -110,21 +74,6 @@ def solve_quadratic(c1, c0):
     return [(-c1 + sqrt_delta) / 2.0, (-c1 - sqrt_delta) / 2.0]
 
 def solve_cubic(c2, c1, c0):
-    """
-    Giải phương trình bậc 3: λ³ + c₂λ² + c₁λ + c₀ = 0
-    
-    Thuật toán:
-      1. Đổi biến Tschirnhaus: λ = t - c₂/3 để khử bớt bậc 2
-      2. Tính discriminant Δ = q²/4 + p³/27
-      3. Nếu Δ ≤ 0 (3 nghiệm thực): dùng phương pháp lượng giác Vieta
-         → cos(φ/3) cho 3 nghiệm chính xác, tránh sai số floating-point
-      4. Nếu Δ > 0 (1 thực, 2 phức): dùng công thức Cardano cổ điển
-    
-    Tham số:
-        c2, c1, c0: float — hệ số đa thức
-    Trả về:
-        list — 3 nghiệm (float hoặc complex)
-    """
     p = c1 - (c2**2) / 3.0
     q = c0 + (2.0 * (c2**3)) / 27.0 - (c1 * c2) / 3.0
     
@@ -167,28 +116,8 @@ def solve_cubic(c2, c1, c0):
         
         return [t1 - offset, t2 - offset, t3 - offset]
 
-# ================================================================
-# ======== THUẬT TOÁN QR CHO CHỈ ĐỊNH ĐỘC LẬP BẬC CAO ============
-# ================================================================
+# Tính trị riêng bằng QR Iteration cho các ma trận cấp lớn hơn
 def compute_eigenvalues_qr(A):
-    """
-    Tính trị riêng bằng thuật toán QR Iteration (from scratch).
-    
-    Thuật toán: Lặp đi lặp lại phép phân rã QR rồi nhân ngược:
-        A₀ = A
-        Aₖ = QₖRₖ  (QR decomposition bằng Gram-Schmidt)
-        Aₖ₊₁ = RₖQₖ
-        → Aₖ hội tụ về ma trận tam giác trên (quasi-upper triangular)
-        → Đường chéo chính = các trị riêng
-    
-    Dùng cho: n = 4 (bậc 4 có công thức Ferrari nhưng quá phức tạp)
-    Hội tụ: Tối đa 1000 vòng lặp, dừng khi tổng |phần tử dưới đường chéo| < 1e-10
-    
-    Tham số:
-        A: list of lists — ma trận vuông n×n
-    Trả về:
-        list — n trị riêng (xấp xỉ số)
-    """
     n = len(A)
     Ak = [row[:] for row in A]
     
@@ -230,27 +159,17 @@ def compute_eigenvalues_qr(A):
     return [Ak[i][i] for i in range(n)]
 
 def compute_eigenvalues(A):
-    """
-    Tích hợp quy trình tính Trị riêng:
-      - n <= 3: Giải đại số (Faddeev-LeVerrier + công thức nghiệm)
-      - n == 4:  Lặp QR Iteration (From Scratch)
-      - n >= 5:  Dùng NumPy (np.linalg.eig)
-    """
     n = len(A)
     
-    # Bậc >= 5: Dùng NumPy
     if n >= 5:
         print(f"  [Info] n={n} >= 5: Sử dụng NumPy (np.linalg.eig)...")
         eigvals, _ = np.linalg.eig(np.array(A, dtype=float))
         return eigvals.tolist()
     
-    # Bậc == 4: Giải thuật Lặp QR (Hoàn toàn From Scratch)
     if n == 4:
-        print(f"  [Info] n={n} == 4: Kích hoạt Lặp QR Iteration nội bộ (Bỏ qua định lý Abel)...")
+        print(f"  [Info] n={n} == 4: Kích hoạt Lặp QR Iteration")
         return compute_eigenvalues_qr(A)
     
-    # Bậc 1-3: Giải bằng lý thuyết đại số
-    print(f"  [Info] Tính phương trình đặc trưng bằng Faddeev-LeVerrier...")
     coeffs = faddeev_leverrier(A)
     
     if n == 1:
@@ -265,30 +184,8 @@ def compute_eigenvalues(A):
     return roots
 
 
-# ================================================================
-# ======== BƯỚC 3: TÌM VECTOR RIÊNG ==============================
-# ================================================================
+# Bước 3: Tìm vector riêng
 def compute_eigenspace(A, eigenvalue, tol=1e-7):
-    """
-    Tìm không gian riêng (eigenspace) ứng với một trị riêng λ.
-    
-    Thuật toán: Giải hệ thuần nhất (A - λI)v = 0 bằng khử Gauss:
-      1. Tạo ma trận M = A - λI
-      2. Khử Gauss có partial pivoting → dạng REF
-      3. Xác định các cột tự do (free variables)
-      4. Với mỗi biến tự do = 1, back substitution → 1 vector riêng
-    
-    Điểm quan trọng: Trả về TẤT CẢ vector riêng độc lập tuyến tính,
-    không chỉ 1. Số vector = geometric multiplicity (bội hình học).
-    
-    Tham số:
-        A: list of lists — ma trận vuông n×n
-        eigenvalue: float — trị riêng λ
-        tol: float — ngưỡng coi là 0 (mặc định 1e-7)
-    Trả về:
-        list of lists — danh sách các vector riêng (KHÔNG chuẩn hóa, dạng đẹp)
-        Trả về [] nếu λ không phải trị riêng
-    """
     n = len(A)
     M = [[A[i][j] - (eigenvalue if i == j else 0.0) for j in range(n)] for i in range(n)]
 
@@ -335,24 +232,8 @@ def compute_eigenspace(A, eigenvalue, tol=1e-7):
 
     return eigenspace
 
-# ================================================================
-# ======== ĐẢO MA TRẬN & CHÉO HÓA ===============================
-# ================================================================
+# Các hàm hỗ trợ chéo hóa
 def inverse_matrix(A):
-    """
-    Tính ma trận nghịch đảo A⁻¹ bằng phương pháp Gauss-Jordan.
-    
-    Thuật toán: Biến đổi dòng trên ma trận ghép [A | I]
-    cho đến khi phía trái thành I → phía phải chính là A⁻¹.
-    Có partial pivoting để đảm bảo ổn định số.
-    
-    Tham số:
-        A: list of lists — ma trận vuông n×n khả nghịch
-    Trả về:
-        list of lists — ma trận A⁻¹
-    Raises:
-        ValueError nếu ma trận suy biến (không khả nghịch)
-    """
     n = len(A)
     aug = [A[i][:] + [1.0 if i == j else 0.0 for j in range(n)] for i in range(n)]
     for col in range(n):
@@ -378,32 +259,9 @@ def inverse_matrix(A):
 
 
 def diagonalize(A):
-    """
-    Chéo hóa ma trận: A = P D P⁻¹  (Hàm chính của module)
-    
-    Quy trình:
-      1. Tính trị riêng (hybrid: đại số cho n≤3, QR cho n=4, NumPy cho n≥5)
-      2. Với mỗi trị riêng, tìm không gian riêng → vector riêng
-      3. Xử lý trị riêng trùng: so sánh algebraic vs geometric multiplicity
-      4. Kiểm tra: A chéo hóa được ⟺ có đủ n vector riêng độc lập
-      5. Lắp ráp P (eigenvectors), D (eigenvalues), tính P⁻¹
-    
-    Tham số:
-        A: list of lists — ma trận vuông n×n
-    Trả về tuple:
-        is_diagonalizable: bool — A có chéo hóa được không
-        P:          ma trận n×n (mỗi CỘT = 1 vector riêng) hoặc None
-        D:          ma trận đường chéo (trị riêng) hoặc None
-        P_inv:      ma trận P⁻¹ hoặc None
-        eigenvalues:  list — tất cả trị riêng (có thể trùng)
-        eigenvectors: list of lists — các vector riêng tìm được
-    """
     n = len(A)
-
-    # 1. Lai ghép: <=3 xài Lý thuyết đại số, >=4 xài QR Iteration
     eigenvalues = compute_eigenvalues(A)
 
-    # Trích xuất phần thực (bỏ số phức do sai số)
     real_eigenvalues = []
     for lam in eigenvalues:
         if isinstance(lam, complex):
@@ -413,24 +271,18 @@ def diagonalize(A):
         else:
             real_eigenvalues.append(float(lam))
 
-    # 2. Xử lý tập hợp Trị riêng & Vector riêng
     P_cols = []
     valid_eigenvalues = []
 
-    # Loại bỏ trị riêng lặp để không cần tính dư, ta tự bù multiplicity qua Eigenspace
     unique_eigenvalues = []
     for lam in real_eigenvalues:
-        # Nếu chưa duyệt qua (sai số 1e-5)
         if not any(abs(lam - u) < 1e-5 for u in unique_eigenvalues):
             unique_eigenvalues.append(lam)
 
     for lam in unique_eigenvalues:
-        # Đếm số lượng cần thiết (Đại số Multiplicity)
         algebraic_mult = sum(1 for v in real_eigenvalues if abs(v - lam) < 1e-5)
-        # Tìm Không gian riêng (Hình học Multiplicity)
         vectors = compute_eigenspace(A, lam)
         
-        # Lấy tối đa số lượng chiều bằng multiplicity
         used_vectors = vectors[:algebraic_mult]
         
         for vec in used_vectors:
@@ -442,7 +294,6 @@ def diagonalize(A):
     if not P_cols:
         return False, None, None, None, real_eigenvalues, []
 
-    # 3. Lắp ráp
     k = min(len(P_cols), n)
     P = [[P_cols[j][i] for j in range(k)] for i in range(n)]
     if k < n:
@@ -461,17 +312,6 @@ def diagonalize(A):
 
 
 def verify_diagonalization(A, P, D, P_inv):
-    """
-    Kiểm chứng kết quả chéo hóa bằng NumPy.
-    
-    So sánh: A vs PDP⁻¹ → nếu max|A - PDP⁻¹| < 1e-6 thì đúng.
-    Chỉ dùng NumPy để KIỂM CHỨNG (không dùng để cài đặt thuật toán).
-    
-    Tham số:
-        A, P, D, P_inv: list of lists — các ma trận từ diagonalize()
-    Trả về:
-        bool — True nếu kết quả chính xác
-    """
     A_np    = np.array(A,     dtype=float)
     P_np    = np.array(P,     dtype=float)
     D_np    = np.array(D,     dtype=float)
@@ -484,21 +324,6 @@ def verify_diagonalization(A, P, D, P_inv):
 
 
 def matrix_power_via_diag(A, k):
-    """
-    Tính Aᵏ hiệu quả qua chéo hóa (Công thức (6) trong đề bài):
-        Aᵏ = P Dᵏ P⁻¹,   Dᵏ = diag(λ₁ᵏ, ..., λₙᵏ)
-    
-    Chi phí: O(n²) sau khi đã có phân tích chéo hóa
-    (so với O(n³ log k) nếu nhân ma trận trực tiếp).
-    
-    Tham số:
-        A: list of lists — ma trận vuông n×n (phải chéo hóa được)
-        k: int — số mũ
-    Trả về:
-        Ak: list of lists — ma trận Aᵏ
-    Raises:
-        ValueError nếu A không chéo hóa được
-    """
     ok, P, D, P_inv, _, _ = diagonalize(A)
     if not ok:
         raise ValueError("Ma trận không chéo hóa được → không thể dùng công thức Aᵏ = PDᵏP⁻¹.")
@@ -508,11 +333,8 @@ def matrix_power_via_diag(A, k):
     return Ak
 
 
-# ================================================================
-# ==================== NHẬP MA TRẬN & XUẤT KẾT QUẢ ==============
-# ================================================================
+# Nhập ma trận & xuất kết quả
 def input_matrix():
-    """Nhập ma trận từ bàn phím."""
     n = int(input("Nhập kích thước ma trận vuông n: "))
     print(f"Nhập {n} dòng, mỗi dòng {n} số cách nhau bởi dấu cách:")
     A = []

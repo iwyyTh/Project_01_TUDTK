@@ -15,15 +15,18 @@ def draw_charts_from_json(json_file="benchmark_results.json"):
     """
     Hàm đọc dữ liệu từ file JSON và vẽ đồ thị mà không cần chạy lại benchmark.
     """
-    # 1. Kiểm tra file tồn tại
-    if not os.path.exists(json_file):
-        print(f"LỖI: Không tìm thấy file '{json_file}'.")
+    # 1. Đảm bảo đọc đúng file trong thư mục part3 bất kể đường dẫn CWD
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(current_dir, json_file)
+
+    if not os.path.exists(file_path):
+        print(f"LỖI: Không tìm thấy file '{file_path}'.")
         print("Hãy chạy benchmark.py trước để tạo dữ liệu!")
         return
 
     # 2. Đọc dữ liệu
-    print(f"Đang đọc dữ liệu từ {json_file}...")
-    with open(json_file, 'r', encoding='utf-8') as f:
+    print(f"Đang đọc dữ liệu từ {file_path}...")
+    with open(file_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
     # 3. Chuyển đổi sang DataFrame và làm sạch
@@ -52,8 +55,9 @@ def draw_charts_from_json(json_file="benchmark_results.json"):
         plt.xlabel('Kích thước ma trận (n)')
         plt.ylabel('Thời gian trung bình (s)')
         plt.grid(True, which="both", ls="-", alpha=0.5)
-        plt.savefig('performance_replot.png', dpi=300)
-        print("-> Đã xuất: performance_replot.png")
+        out_path1 = os.path.join(current_dir, 'performance_replot.png')
+        plt.savefig(out_path1, dpi=300)
+        print(f"-> Đã xuất: {out_path1}")
 
     # --- ĐỒ THỊ 2: ĐỘ ỔN ĐỊNH SỐ (SAI SỐ) ---
     plt.figure(figsize=(12, 6))
@@ -72,12 +76,18 @@ def draw_charts_from_json(json_file="benchmark_results.json"):
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', fontsize='small')
         plt.grid(True, which="both", ls="-", alpha=0.5)
         plt.tight_layout()
-        plt.savefig('stability_replot.png', dpi=300)
-        print("-> Đã xuất: stability_replot.png")
+        out_path2 = os.path.join(current_dir, 'stability_replot.png')
+        plt.savefig(out_path2, dpi=300)
+        print(f"-> Đã xuất: {out_path2}")
 
-    plt.show()
+    try:
+        plt.show()
+    except Exception as e:
+        print(f"Không thể hiển thị cửa sổ hình ảnh, nhưng đã lưu file. Lỗi: {e}")
 
 if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding='utf-8')
     print("█" * 70)
     print("Đang vẽ lại đồ thị từ dữ liệu đã lưu...")
     draw_charts_from_json("benchmark_results.json")

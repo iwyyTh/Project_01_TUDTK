@@ -24,16 +24,18 @@ import seaborn as sns
 # ================================================================
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 _root_dir = os.path.dirname(_current_dir)
-_part1_dir = os.path.join(_root_dir, "part1")
-_part2_dir = os.path.join(_root_dir, "part2")
 
-if _part1_dir not in sys.path:
-    sys.path.append(_part1_dir)
-if _part2_dir not in sys.path:
-    sys.path.append(_part2_dir)
+if _root_dir not in sys.path:
+    sys.path.append(_root_dir)
 
+# Import từ Phần 1
 from part1.gaussian import gaussian_eliminate
-from solvers import gauss_seidel, solve_svd, solve_gauss, relative_error
+
+# Import từ Phần 2
+from part2.decomposition import svd_decomposition
+
+# Import từ Phần 3 (các hàm giải hệ phương trình)
+from part3.solvers import gauss_seidel, solve_svd, solve_gauss, relative_error
 
 
 # ================================================================

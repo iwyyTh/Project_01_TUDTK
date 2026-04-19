@@ -1,9 +1,14 @@
-
+import sys
+import os
 import math
 import numpy as np
-# Dùng diagonalization.py để chéo hóa AᵀA và AAᵀ
-from diagonalization import diagonalize, compute_eigenvalues
 
+_current_dir = os.path.dirname(os.path.abspath(__file__))
+_root_dir = os.path.dirname(_current_dir)
+if _root_dir not in sys.path:
+    sys.path.append(_root_dir)
+
+from part2.diagonalization import diagonalize, compute_eigenvalues
 
 # ================================================================
 # ====================== HÀM HỖ TRỢ =============================

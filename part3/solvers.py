@@ -1,35 +1,14 @@
-"""
-solvers.py — Phần 3: Các phương pháp giải hệ phương trình Ax = b
-
-Gộp 3 phương pháp:
-  1. Khử Gauss với Partial Pivoting  (Phần 1 — gaussian.py)
-  2. Phân rã SVD                      (Phần 2 — decomposition.py)
-  3. Lặp Gauss–Seidel                 (Cài đặt mới)
-
-Hàm tiện ích:
-  - condition_number_2(A)      : Tính số điều kiện κ₂(A) = σ_max / σ_min
-  - is_diagonally_dominant(A)  : Kiểm tra chéo trội chặt hàng
-  - relative_error(A, x, b)   : Tính sai số tương đối ‖Ax̂ − b‖₂ / ‖b‖₂
-"""
-
 import sys
 import os
 import math
 import copy
 
-# ================================================================
-# CẤU HÌNH ĐƯỜNG DẪN IMPORT
-# (part3/ và part2/ nằm cùng cấp trong Lab 1/)
-# ================================================================
+# Cấu hình đường dẫn import để python nhận diện được module
 _current_dir = os.path.dirname(os.path.abspath(__file__))
 _root_dir = os.path.dirname(_current_dir)
-_part1_dir = os.path.join(_root_dir, "part1")
-_part2_dir = os.path.join(_root_dir, "part2")
 
-if _part1_dir not in sys.path:
-    sys.path.append(_part1_dir)
-if _part2_dir not in sys.path:
-    sys.path.append(_part2_dir)
+if _root_dir not in sys.path:
+    sys.path.append(_root_dir)
 
 # Import từ Phần 1
 from part1.gaussian import gaussian_eliminate
@@ -37,10 +16,7 @@ from part1.gaussian import gaussian_eliminate
 # Import từ Phần 2
 from part2.decomposition import svd_decomposition
 
-
-# ================================================================
-# ===================== HÀM HỖ TRỢ ==============================
-# ================================================================
+# Các hàm hỗ trợ
 
 def _mat_vec_mul(A, x):
     """Nhân ma trận A (n×n) với vector x (n,). Trả về vector (n,)."""
@@ -68,109 +44,54 @@ def _deep_copy_matrix(A):
     return [row[:] for row in A]
 
 
-# ================================================================
-# ================== 1. GIẢI BẰNG KHỬ GAUSS =====================
-# ================================================================
-
+# 1. Giải hệ phương trình Ax = b bằng khử Gauss
 def solve_gauss(A, b):
-    """
-    Giải Ax = b bằng phương pháp khử Gauss với Partial Pivoting.
-
-    Sử dụng hàm gaussian_eliminate() từ Phần 1 (gaussian.py).
-
-    Tham số:
-        A : list of lists — ma trận vuông n×n (khả nghịch)
-        b : list           — vector vế phải (n,)
-
-    Trả về:
-        x : list[float] — nghiệm của hệ
-
-    Ngoại lệ:
-        ValueError nếu hệ không có nghiệm duy nhất.
-    """
-    # Tạo bản sao để không làm thay đổi dữ liệu gốc
     A_copy = _deep_copy_matrix(A)
     b_copy = b[:]
 
     _, x, _ = gaussian_eliminate(A_copy, b_copy)
 
-    # gaussian_eliminate trả về tuple (x_p, basis) nếu vô số nghiệm,
-    # hoặc string nếu vô nghiệm
     if isinstance(x, str):
-        raise ValueError(f"Hệ phương trình vô nghiệm: {x}")
+        if "Nghiệm duy nhất" in x or "Nghiệm tổng quát" in x:
+            import ast
+            start = x.find("[")
+            end = x.find("]", start) + 1
+            if start != -1 and end != 0:
+                try:
+                    return ast.literal_eval(x[start:end])
+                except:
+                    pass
+        raise ValueError(f"Hệ phương trình báo lỗi: {x}")
+        
     if isinstance(x, tuple):
-        # Vô số nghiệm — lấy nghiệm riêng (particular solution)
         return x[0]
 
     return x
 
 
-# ================================================================
-# ================== 2. GIẢI BẰNG PHÂN RÃ SVD ===================
-# ================================================================
-
+# 2. Giải hệ phương trình bằng phân rã SVD (SVD decomposition)
 def solve_svd(A, b, sv_threshold=1e-10):
-    """
-    Giải Ax = b bằng phân rã SVD: x = V Σ⁻¹ Uᵀ b
-
-    Sử dụng hàm svd_decomposition() từ Phần 2 (decomposition.py).
-
-    Công thức:
-        A = U Σ Vᵀ
-        x = V Σ⁻¹ Uᵀ b  (pseudoinverse)
-
-    Chỉ dùng các singular values σᵢ > sv_threshold để tránh
-    chia cho giá trị gần 0, cải thiện ổn định số.
-
-    Tham số:
-        A            : list of lists — ma trận vuông n×n
-        b            : list           — vector vế phải (n,)
-        sv_threshold : float          — ngưỡng bỏ qua singular value nhỏ
-
-    Trả về:
-        x : list[float] — nghiệm (least-squares nếu ill-conditioned)
-    """
     U, S, Vt = svd_decomposition(A)
     m = len(U)
     n = len(Vt)
 
-    # Bước 1: Tính Uᵀ b  (vector kích thước m)
     Ut_b = [sum(U[i][j] * b[i] for i in range(m)) for j in range(m)]
 
-    # Bước 2: Tính Σ⁻¹ Uᵀ b  (chia cho σᵢ, bỏ qua σ ≈ 0)
-    #   Chỉ lấy min(m, n) thành phần tương ứng với singular values
     k = min(m, n, len(S))
     sigma_inv_Ut_b = [0.0] * n
     for i in range(k):
         if S[i] > sv_threshold:
             sigma_inv_Ut_b[i] = Ut_b[i] / S[i]
-        # else: giữ = 0 (bỏ qua thành phần này — truncated pseudoinverse)
 
-    # Bước 3: Tính x = Vᵀᵀ (Σ⁻¹ Uᵀ b) = V (Σ⁻¹ Uᵀ b)
-    #   Vt là n×n, ta cần V = Vtᵀ, tức x[i] = Σⱼ Vt[j][i] * sigma_inv_Ut_b[j]
     x = [sum(Vt[j][i] * sigma_inv_Ut_b[j] for j in range(n)) for i in range(n)]
 
     return x
 
 
-# ================================================================
-# ============= 3. GIẢI BẰNG LẶP GAUSS–SEIDEL ==================
-# ================================================================
+# 3. Phép lặp Gauss-Seidel
 
 def is_diagonally_dominant(A):
-    """
-    Kiểm tra ma trận A có chéo trội chặt hàng hay không.
-
-    Điều kiện: |a_ii| > Σ_{j≠i} |a_ij|  với mọi i.
-
-    Đây là điều kiện ĐỦ (sufficient) để Gauss–Seidel hội tụ.
-
-    Tham số:
-        A : list of lists — ma trận vuông n×n
-
-    Trả về:
-        bool — True nếu chéo trội chặt
-    """
+    """ Kiểm tra xem ma trận có chéo trội chặt không """
     n = len(A)
     for i in range(n):
         diag = abs(A[i][i])
@@ -181,49 +102,17 @@ def is_diagonally_dominant(A):
 
 
 def gauss_seidel(A, b, x0=None, tol=1e-10, max_iter=1000):
-    """
-    Giải Ax = b bằng phương pháp lặp Gauss–Seidel.
-
-    Công thức lặp (theo từng thành phần):
-        x_i^(k+1) = (1/a_ii) * ( b_i − Σ_{j<i} a_ij·x_j^(k+1)
-                                      − Σ_{j>i} a_ij·x_j^(k) )
-
-    Điểm khác với Jacobi: dùng ngay giá trị x_j mới nhất (j < i)
-    trong cùng một vòng lặp → hội tụ nhanh hơn.
-
-    Tham số:
-        A        : list of lists — ma trận vuông n×n
-        b        : list           — vector vế phải (n,)
-        x0       : list or None   — nghiệm khởi tạo (mặc định = vector 0)
-        tol      : float          — ngưỡng hội tụ (‖x^(k+1) − x^(k)‖∞ < tol)
-        max_iter : int            — số vòng lặp tối đa
-
-    Trả về:
-        (x, iterations, converged) :
-            x          : list[float] — nghiệm xấp xỉ
-            iterations : int         — số vòng lặp đã thực hiện
-            converged  : bool        — True nếu đã hội tụ
-
-    Ngoại lệ:
-        ValueError nếu phần tử đường chéo a_ii = 0.
-
-    Cảnh báo:
-        In cảnh báo nếu ma trận không chéo trội (có thể không hội tụ).
-    """
+    """ Giải hệ phương trình bằng lặp Gauss-Seidel """
     n = len(A)
 
-    # --- Kiểm tra phần tử đường chéo ---
+    # Kiểm tra đường chéo
     for i in range(n):
         if abs(A[i][i]) < 1e-15:
-            raise ValueError(
-                f"Phần tử đường chéo a[{i}][{i}] = 0. "
-                f"Gauss–Seidel không thể thực hiện (chia cho 0)."
-            )
+            raise ValueError(f"Phần tử đường chéo a[{i}][{i}] = 0 (Gauss-Seidel lỗi do chia cho 0).")
 
-    # --- Kiểm tra điều kiện hội tụ (chéo trội) ---
+    # Cảnh báo nếu không chéo trội
     if not is_diagonally_dominant(A):
-        print("  [CẢNH BÁO] Ma trận KHÔNG chéo trội chặt hàng. "
-              "Gauss–Seidel có thể KHÔNG hội tụ.")
+        print("  [Cảnh báo] Ma trận không chéo trội chặt hàng. Có thể không hội tụ.")
 
     # --- Khởi tạo nghiệm ---
     if x0 is None:
@@ -231,16 +120,13 @@ def gauss_seidel(A, b, x0=None, tol=1e-10, max_iter=1000):
     else:
         x = x0[:]
 
-    # --- Vòng lặp chính ---
+    # Bắt đầu vòng lặp
     converged = False
     for iteration in range(1, max_iter + 1):
         x_old = x[:]
 
         for i in range(n):
-            # Tính σ = Σ_{j≠i} a_ij * x_j
-            # Với j < i: dùng x[j] mới (đã cập nhật trong iteration này)
-            # Với j > i: dùng x[j] cũ (chưa cập nhật → chính là x_old[j],
-            #            nhưng vì ta update in-place nên x[j] vẫn là giá trị cũ)
+            # Tính tổng các thành phần khác i
             sigma = 0.0
             for j in range(n):
                 if j != i:
@@ -248,7 +134,6 @@ def gauss_seidel(A, b, x0=None, tol=1e-10, max_iter=1000):
 
             x[i] = (b[i] - sigma) / A[i][i]
 
-        # Kiểm tra hội tụ: ‖x^(k+1) − x^(k)‖∞ < tol
         error = _norm_inf(_vec_sub(x, x_old))
         if error < tol:
             converged = True
@@ -257,30 +142,12 @@ def gauss_seidel(A, b, x0=None, tol=1e-10, max_iter=1000):
     return x, iteration, converged
 
 
-# ================================================================
-# ================= HÀM TIỆN ÍCH (UTILITIES) ====================
-# ================================================================
+# Các hàm đánh giá độ chính xác (Utility)
 
 def condition_number_2(A):
-    """
-    Tính số điều kiện κ₂(A) = σ_max / σ_min (chuẩn spectral).
-
-    Dùng phân rã SVD tự cài đặt (Phần 2).
-
-    Ý nghĩa:
-        - κ₂ ≈ 1       : well-conditioned (ổn định)
-        - κ₂ >> 1      : ill-conditioned (kém ổn định)
-        - κ₂ = ∞       : ma trận suy biến (singular)
-
-    Tham số:
-        A : list of lists — ma trận vuông n×n
-
-    Trả về:
-        float — số điều kiện κ₂(A), hoặc float('inf') nếu σ_min ≈ 0
-    """
+    """ Tính số điều kiện κ₂(A) = σ_max / σ_min """
     _, S, _ = svd_decomposition(A)
 
-    # Lọc bỏ singular values ≈ 0
     nonzero_sv = [s for s in S if s > 1e-14]
 
     if not nonzero_sv:
@@ -296,31 +163,18 @@ def condition_number_2(A):
 
 
 def relative_error(A, x_hat, b):
-    """
-    Tính sai số tương đối của nghiệm xấp xỉ x̂:
-        error = ‖Ax̂ − b‖₂ / ‖b‖₂
-
-    Tham số:
-        A     : list of lists — ma trận hệ số n×n
-        x_hat : list           — nghiệm xấp xỉ (n,)
-        b     : list           — vector vế phải (n,)
-
-    Trả về:
-        float — sai số tương đối
-    """
+    """ Tính sai số tương đối: ‖Ax - b‖ / ‖b‖ """
     Ax = _mat_vec_mul(A, x_hat)
     residual = _vec_sub(Ax, b)
     norm_b = _norm2(b)
 
     if norm_b < 1e-15:
-        return _norm2(residual)  # Tránh chia cho 0
+        return _norm2(residual) 
 
     return _norm2(residual) / norm_b
 
 
-# ================================================================
-# ========================= DEMO / TEST ==========================
-# ================================================================
+# Chạy demo
 
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')
