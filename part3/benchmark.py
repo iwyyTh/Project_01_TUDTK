@@ -2,11 +2,11 @@
 benchmark.py — Phần 3: Đo thời gian và phân tích ổn định số
 
 Yêu cầu đồ án:
-  1. Thực nghiệm với ma trận ngẫu nhiên kích thước n ∈ {50, 100, 200, 500, 1000}
+  1. Thực nghiệm với ma trận ngẫu nhiên kích thước n = {50, 100, 200, 500, 1000}
   2. Đo thời gian thực thi (trung bình 5 lần chạy)
-  3. Đo sai số tương đối: ‖Ax̂ − b‖₂ / ‖b‖₂
+  3. Đo sai số tương đối
   4. Phân tích ổn định: Ma trận Hilbert (ill-conditioned) vs SPD (well-conditioned)
-  5. Tính số điều kiện κ₂(A)
+  5. Tính số điều kiện
 """
 
 import sys
@@ -44,8 +44,7 @@ from part3.solvers import gauss_seidel, solve_svd, solve_gauss, relative_error
 
 def generate_random_diag_dominant(n):
     """
-    Sinh ma trận ngẫu nhiên chéo trội chặt hàng (n×n).
-    Đảm bảo cả 3 phương pháp (Gauss, SVD, Gauss-Seidel) đều chạy được.
+    Sinh ma trận ngẫu nhiên chéo trội chặt hàng (n x n).
     """
     A = [[random.uniform(-10, 10) for _ in range(n)] for _ in range(n)]
     for i in range(n):
@@ -53,21 +52,12 @@ def generate_random_diag_dominant(n):
         A[i][i] = off_diag + random.uniform(1, 5)
     return A
 
-
+#Sinh ma trận Hilbert\
 def generate_hilbert_matrix(n):
-    """
-    Sinh ma trận Hilbert n×n: H[i][j] = 1 / (i + j + 1).
-    Ma trận Hilbert có số điều kiện rất lớn (ill-conditioned).
-    """
     return [[1.0 / (i + j + 1) for j in range(n)] for i in range(n)]
 
-
+#Sinh ma trận SPD chéo trội chặt
 def generate_spd_matrix(n):
-    """
-    Sinh ma trận SPD (Symmetric Positive Definite) chéo trội chặt.
-    = đối xứng + chéo trội + đường chéo dương → đảm bảo SPD.
-    Gauss-Seidel hội tụ tốt trên loại ma trận này.
-    """
     A = [[0.0] * n for _ in range(n)]
     for i in range(n):
         for j in range(i + 1, n):
@@ -79,47 +69,21 @@ def generate_spd_matrix(n):
         A[i][i] = off_diag + random.uniform(1, 5)
     return A
 
-
+#Sinh vector ngẫu nhiên
 def generate_random_vector(n):
-    """Sinh vector vế phải b ngẫu nhiên (n phần tử)."""
     return [random.uniform(-10, 10) for _ in range(n)]
 
 
-# ================================================================
-# ============== TÍNH SỐ ĐIỀU KIỆN κ₂(A) =========================
-# ================================================================
-
+# ============== TÍNH SỐ ĐIỀU KIỆN =========================
 def condition_number(A):
-    """
-    Tính κ₂(A) = σ_max / σ_min bằng NumPy SVD.
-    (Dùng NumPy ở đây vì SVD tự cài chỉ hỗ trợ n nhỏ, 
-     benchmark cần chạy với n lên tới 1000.)
-    """
     A_np = np.array(A, dtype=float)
     s = np.linalg.svd(A_np, compute_uv=False)
     if s[-1] < 1e-15:
         return float('inf')
     return float(s[0] / s[-1])
 
-
-# ================================================================
 # ============== HÀM ĐO THỜI GIAN ================================
-# ================================================================
-
 def benchmark_solver(solver_name, solver_fn, A, b, num_runs=5):
-    """
-    Đo thời gian trung bình (num_runs lần) và sai số tương đối.
-
-    Tham số:
-        solver_name : str    — tên phương pháp (để hiển thị)
-        solver_fn   : callable — hàm giải, nhận (A, b) trả về x
-        A           : ma trận n×n
-        b           : vector n
-        num_runs    : int    — số lần chạy (mặc định 5)
-
-    Trả về:
-        dict với keys: 'name', 'avg_time', 'rel_error', 'converged', 'iterations'
-    """
     times = []
     x_result = None
     extra_info = {}
@@ -147,7 +111,7 @@ def benchmark_solver(solver_name, solver_fn, A, b, num_runs=5):
 
     avg_time = sum(times) / len(times)
 
-    # Tính sai số tương đối: ‖Ax̂ − b‖₂ / ‖b‖₂
+    # Tính sai số tương đối
     rel_err = relative_error(A, x_result, b)
 
     result_dict = {
@@ -158,24 +122,8 @@ def benchmark_solver(solver_name, solver_fn, A, b, num_runs=5):
     result_dict.update(extra_info)
     return result_dict
 
-
-# ================================================================
-# ============ BENCHMARK CHÍNH ====================================
-# ================================================================
-
+#Hàm chạy Benchmark tổng
 def run_benchmark(matrix_type="random", sizes=None, num_runs=5, verbose=True):
-    """
-    Chạy benchmark cho 3 phương pháp, trên nhiều kích thước.
-
-    Tham số:
-        matrix_type : 'random' | 'hilbert' | 'spd'
-        sizes       : list[int] — các kích thước n
-        num_runs    : int — số lần chạy trung bình
-        verbose     : bool — in kết quả ra terminal
-
-    Trả về:
-        list[dict] — kết quả benchmark cho mỗi (n, method)
-    """
     if sizes is None:
         sizes = [50, 100, 200, 500, 1000]
 
@@ -187,7 +135,7 @@ def run_benchmark(matrix_type="random", sizes=None, num_runs=5, verbose=True):
             print(f"  n = {n} | Loại ma trận: {matrix_type.upper()} | Trung bình {num_runs} lần chạy")
             print(f"{'='*70}")
 
-        # --- Sinh ma trận ---
+        # Sinh ma trận
         if matrix_type == "random":
             A = generate_random_diag_dominant(n)
         elif matrix_type == "hilbert":
@@ -200,20 +148,20 @@ def run_benchmark(matrix_type="random", sizes=None, num_runs=5, verbose=True):
 
         b = generate_random_vector(n)
 
-        # --- Tính số điều kiện ---
+        # Tính số điều kiện
         kappa = condition_number(A)
 
         if verbose:
             print(f"  κ₂(A) = {kappa:.4e}")
             print()
 
-        # --- Danh sách solver ---
+        #Danh sách solver
         solvers = [
             ("Gauss (Partial Pivot)", solve_gauss),
             ("Gauss-Seidel", gauss_seidel),
         ]
 
-        # SVD tự cài quá chậm với n lớn → dùng NumPy SVD cho n >= 5
+        # SVD tự cài quá chậm với n lớn -> dùng NumPy SVD cho n >= 5
         # (giống logic đã có trong solvers.py: decomposition.py dùng NumPy cho n>=5)
         solvers.append(("SVD (Pseudoinverse)", _solve_svd_benchmark))
 
@@ -240,7 +188,6 @@ def _solve_svd_benchmark(A, b):
         A_np = np.array(A, dtype=float)
         b_np = np.array(b, dtype=float)
         U, s, Vt = np.linalg.svd(A_np, full_matrices=True)
-        # Tính pseudoinverse: x = V Σ⁻¹ Uᵀ b
         S_plus = np.zeros((n, n), dtype=float)
         for i in range(n):
             if s[i] > 1e-12:
@@ -252,7 +199,7 @@ def _solve_svd_benchmark(A, b):
 
 
 def _print_result(result):
-    """In kết quả benchmark ra terminal."""
+    #In kết quả benchmark ra terminal.
     name = result['name']
     avg_time = result.get('avg_time')
     rel_err = result.get('rel_error')
@@ -279,8 +226,8 @@ def _print_result(result):
 def run_stability_analysis(sizes=None, num_runs=5, verbose=True):
     """
     So sánh ổn định số trên 2 loại ma trận:
-      - Hilbert (ill-conditioned, κ₂ rất lớn)
-      - SPD chéo trội (well-conditioned, κ₂ nhỏ)
+      - Hilbert (ill-conditioned, số điều kiện rất lớn)
+      - SPD chéo trội (well-conditioned, số điều kiện nhỏ)
 
     Trả về:
         (hilbert_results, spd_results) — 2 list kết quả benchmark
@@ -289,9 +236,9 @@ def run_stability_analysis(sizes=None, num_runs=5, verbose=True):
         sizes = [5, 10, 15, 20]  # Hilbert nhỏ hơn vì rất ill-conditioned
 
     if verbose:
-        print("\n" + "█" * 70)
+        print("\n" + "|" * 70)
         print("  PHÂN TÍCH ỔN ĐỊNH SỐ: HILBERT vs SPD")
-        print("█" * 70)
+        print("|" * 70)
 
     if verbose:
         print("\n" + "─" * 70)
@@ -307,9 +254,9 @@ def run_stability_analysis(sizes=None, num_runs=5, verbose=True):
 
     # --- Bảng tổng kết ---
     if verbose:
-        print("\n" + "█" * 70)
-        print("  BẢNG TỔNG KẾT: κ₂(A) vs Sai Số Tương Đối")
-        print("█" * 70)
+        print("\n" + "|" * 70)
+        print("  BẢNG TỔNG KẾT: số điều kiện vs Sai Số Tương Đối")
+        print("|" * 70)
         print(f"\n  {'Loại':<10} {'n':>4} {'κ₂(A)':>14} | {'Gauss':>12} {'SVD':>12} {'G-Seidel':>12}")
         print(f"  {'─'*68}")
 
@@ -345,10 +292,7 @@ def _print_summary_line(label, res, all_results):
     print(f"  {label:<10} {n:>4} {kappa:>14.4e} | {gauss_err:>12} {svd_err:>12} {gs_err:>12}")
 
 
-# ================================================================
 # ============ LƯU KẾT QUẢ ĐỂ NOTEBOOK DÙNG =====================
-# ================================================================
-
 def save_results(results, filename="benchmark_results.json"):
     """Lưu kết quả benchmark ra file JSON để analysis.ipynb dùng."""
     filepath = os.path.join(_current_dir, filename)
@@ -372,9 +316,6 @@ def save_results(results, filename="benchmark_results.json"):
 
 
 def draw_charts_from_json(json_file="benchmark_results.json"):
-    """
-    Hàm đọc dữ liệu từ file JSON và vẽ đồ thị mà không cần chạy lại benchmark.
-    """
     # 1. Kiểm tra file tồn tại
     if not os.path.exists(json_file):
         print(f"LỖI: Không tìm thấy file '{json_file}'.")
@@ -402,7 +343,7 @@ def draw_charts_from_json(json_file="benchmark_results.json"):
     # Thiết lập giao diện vẽ
     sns.set_theme(style="whitegrid")
     
-    # --- ĐỒ THỊ 1: HIỆU NĂNG THỜI GIAN ---
+    #Đồ thị 1: Hiệu năng và thời gian
     plt.figure(figsize=(10, 6))
     df_random = df[df['matrix_type'] == 'random'].copy()
     if not df_random.empty:
@@ -415,7 +356,7 @@ def draw_charts_from_json(json_file="benchmark_results.json"):
         plt.savefig('performance_replot.png', dpi=300)
         print("-> Đã xuất: performance_replot.png")
 
-    # --- ĐỒ THỊ 2: ĐỘ ỔN ĐỊNH SỐ (SAI SỐ) ---
+    # Đồ thị 2: Phân tích sai số
     plt.figure(figsize=(12, 6))
     df_stability = df[df['matrix_type'].isin(['hilbert', 'spd'])].copy()
     if not df_stability.empty:
@@ -438,10 +379,8 @@ def draw_charts_from_json(json_file="benchmark_results.json"):
     plt.show()
 
 
-# ================================================================
-# ============================ MAIN ===============================
-# ================================================================
 
+#======MAIN=====
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding='utf-8')
 
