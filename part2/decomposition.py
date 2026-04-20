@@ -80,23 +80,22 @@ def svd_decomposition(A):
     # -------------------------------------------------------
     _, P, D, _, eigenvalues, eigenvecs = diagonalize(AtA)
 
-    # Sắp xếp giảm dần theo eigenvalue
+    # Sắp xếp giảm dần theo trị riêng
     pairs = sorted(zip(eigenvalues, eigenvecs), key=lambda x: x[0], reverse=True)
     eigenvalues_sorted = [p[0] for p in pairs]
     eigenvecs_sorted   = [p[1] for p in pairs]
 
     # -------------------------------------------------------
-    # Bước 2: Tính singular values σᵢ = √λᵢ
+    # Bước 2: Tính singular values
     # -------------------------------------------------------
     singular_values = [math.sqrt(max(lam, 0.0)) for lam in eigenvalues_sorted]
     r = sum(1 for sv in singular_values if sv > 1e-7)   # rank thực sự (tăng dung sai để tránh noise 1e-8)
 
+    
     # -------------------------------------------------------
-    # Bước 3: Xây dựng V (n×n), mỗi cột là một eigenvector ĐÃ CHUẨN HÓA
-    # NOTE: diagonalization.py trả về eigenvector KHÔNG chuẩn hóa (dạng đẹp cho casio/report)
-    #       nhưng SVD bắt buộc cần ‖v‖=1 để V là ma trận trực giao.
-    #       → Chuẩn hóa lại ở đây trước khi đưa vào V.
+    # Bước 3: Xây dựng V (n x n), mỗi cột là một vector riêng ĐÃ CHUẨN HÓA
     # -------------------------------------------------------
+    
     def _normalize(v):
         norm = math.sqrt(sum(x * x for x in v))
         return [x / norm for x in v] if norm > 1e-14 else v
@@ -105,8 +104,9 @@ def svd_decomposition(A):
     V = [[eigenvecs_normalized[j][i] for j in range(n)] for i in range(n)]
 
     # -------------------------------------------------------
-    # Bước 4: Tính các cột của U: uᵢ = (1/σᵢ) A vᵢ
+    # Bước 4: Tính các cột của U
     # -------------------------------------------------------
+    
     U_cols = []
     for j in range(r):
         vj  = [V[i][j] for i in range(n)]                              # cột j của V
@@ -117,16 +117,17 @@ def svd_decomposition(A):
     # -------------------------------------------------------
     # Bước 5: Bổ sung cột còn thiếu của U bằng Gram–Schmidt
     # -------------------------------------------------------
+    
     U_cols = _gram_schmidt_extend(U_cols, m)
-    U = [[U_cols[j][i] for j in range(m)] for i in range(m)]          # m×m
+    U = [[U_cols[j][i] for j in range(m)] for i in range(m)]          # m x m
 
-    Vt = _transpose(V)                                                  # n×n
+    Vt = _transpose(V)                                                  # n x n
 
     return U, singular_values, Vt
 
 
 def verify_svd(A, U, S, Vt):
-    """Kiểm chứng A ≈ UΣVᵀ và tính trực giao của U, V bằng NumPy."""
+    #Kiểm chứng bằng NumPy.
     A_np, U_np, Vt_np = (np.array(M, dtype=float) for M in [A, U, Vt])
     m, n = A_np.shape
 
@@ -139,7 +140,7 @@ def verify_svd(A, U, S, Vt):
     err_U = np.max(np.abs(U_np.T @ U_np - np.eye(m)))
     err_V = np.max(np.abs(Vt_np @ Vt_np.T - np.eye(n)))
 
-    print(f"  [SVD Verify] max|A - UΣVᵀ|   = {err_A:.2e}  {'OK' if err_A < 1e-6 else 'SAI'}")
+    print(f"  [SVD Verify] max|A - UΣVt|   = {err_A:.2e}  {'OK' if err_A < 1e-6 else 'SAI'}")
     print(f"  [SVD Verify] U trực giao      = {err_U:.2e}  {'OK' if err_U < 1e-6 else 'SAI'}")
     print(f"  [SVD Verify] V trực giao      = {err_V:.2e}  {'OK' if err_V < 1e-6 else 'SAI'}")
     return err_A < 1e-6
@@ -186,17 +187,17 @@ if __name__ == "__main__":
                 U, S, Vt = svd_decomposition(A)
 
                 _print_matrix(A, "A (ma trận nhập)")
-                print(f"\n  Singular values σ: {[round(s, 6) for s in S]}")
+                print(f"\n  Singular values: {[round(s, 6) for s in S]}")
                 print(f"  Rank = {sum(1 for s in S if s > 1e-7)}")
 
-                _print_matrix(U, "U (left singular vectors, m×m)")
+                _print_matrix(U, "U (left singular vectors, m x m)")
 
                 Sigma_display = [[0.0]*n for _ in range(m)]
                 for i in range(min(m, n)):
                     if i < len(S):
                         Sigma_display[i][i] = S[i]
                 _print_matrix(Sigma_display, "Σ (singular values trên đường chéo)")
-                _print_matrix(Vt, "Vᵀ (right singular vectors, n×n)")
+                _print_matrix(Vt, "Vt (right singular vectors, n×n)")
 
                 verify_svd(A, U, S, Vt)
 
