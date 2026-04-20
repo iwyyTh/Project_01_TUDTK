@@ -10,12 +10,8 @@ if _root_dir not in sys.path:
 
 from part2.diagonalization import diagonalize, compute_eigenvalues
 
-# ================================================================
-# ====================== HÀM HỖ TRỢ =============================
-# ================================================================
-
+#Nhân 2 ma trận
 def _mat_mul(A, B):
-    """Nhân 2 ma trận (list of lists)."""
     m, k, n = len(A), len(B), len(B[0])
     C = [[0.0] * n for _ in range(m)]
     for i in range(m):
@@ -26,7 +22,7 @@ def _mat_mul(A, B):
                 C[i][j] += A[i][p] * B[p][j]
     return C
 
-
+#A chuyển vị
 def _transpose(A):
     m, n = len(A), len(A[0])
     return [[A[i][j] for i in range(m)] for j in range(n)]
@@ -38,7 +34,7 @@ def _print_matrix(M, name="M", decimals=4):
         formatted = "  ".join(f"{x:>{decimals+6}.{decimals}f}" for x in row)
         print(f"    [{formatted}]")
 
-
+#Giải thuật Gram - schimdt
 def _gram_schmidt_extend(existing_vecs, m):
     """
     Bổ sung các vector trực chuẩn bằng Gram–Schmidt để có đủ m vector.
@@ -60,34 +56,15 @@ def _gram_schmidt_extend(existing_vecs, m):
 
 
 
-# ================================================================
-# ======= TÙY CHỌN C: PHÂN RÃ SVD (A = UΣVᵀ) ==================
-# ================================================================
-#
-# Liên hệ với chéo hóa (diagonalization.py):
-#
-#   AᵀA = V diag(σ₁²,...,σᵣ²) Vᵀ   ← chéo hóa AᵀA
-#   AAᵀ = U diag(σ₁²,...,σᵣ²) Uᵀ   ← chéo hóa AAᵀ
-#
-#   → Bước 1: Dùng diagonalize(AᵀA) để lấy eigenvalues → σᵢ và eigenvectors → V
-#   → Bước 2: Tính uᵢ = (1/σᵢ) A vᵢ
-#   → Bước 3: Bổ sung cột U bằng Gram–Schmidt (nếu m > r)
-#
-# ================================================================
-
+#Phân rã SVD
 def svd_decomposition(A):
     """
-    Phân rã SVD: A = U Σ Vᵀ
-
-    Sử dụng lại hàm diagonalize() từ diagonalization.py để tính
-    eigenvalues / eigenvectors của AᵀA (thay vì cài đặt lại từ đầu).
-
     Tham số:
-        A: list of lists — ma trận m×n
+        A: list of lists — ma trận m x n
     Trả về:
-        U:  list of lists — ma trận trực giao m×m
+        U:  list of lists — ma trận trực giao m x m
         S:  list — singular values (giảm dần)
-        Vt: list of lists — ma trận Vᵀ (n×n)
+        Vt: list of lists — ma trận Vt (n x n)
     """
     # Kiểm tra đầu vào cơ bản
     if len(A) == 0 or len(A[0]) == 0:
@@ -96,13 +73,10 @@ def svd_decomposition(A):
     n = len(A[0])
     if any(len(row) != n for row in A):
         raise ValueError("Các dòng không cùng độ dài.")
-    At = _transpose(A)               # n×m
-    AtA = _mat_mul(At, A)            # n×n  đối xứng bán xác định dương
-
+    At = _transpose(A)               # n x m
+    AtA = _mat_mul(At, A)            # n x n  đối xứng bán xác định dương
     # -------------------------------------------------------
-    # Bước 1: Chéo hóa AᵀA = V D Vᵀ  (dùng diagonalization.py)
-    #   - eigenvalue  λᵢ = σᵢ²
-    #   - eigenvector vᵢ = cột của V (right singular vectors)
+    # Bước 1: Chéo hóa 
     # -------------------------------------------------------
     _, P, D, _, eigenvalues, eigenvecs = diagonalize(AtA)
 
